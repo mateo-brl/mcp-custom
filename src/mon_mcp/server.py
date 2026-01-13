@@ -1,23 +1,21 @@
 """
 Serveur MCP Custom - Point d'entrée principal.
 
-Ce serveur peut être étendu en ajoutant de nouveaux outils avec le décorateur @server.tool()
+Ce serveur peut être étendu en ajoutant de nouveaux outils avec le décorateur @mcp.tool()
 """
 
-import asyncio
-from mcp.server import Server
-from mcp.server.stdio import stdio_server
+from mcp.server.fastmcp import FastMCP
 
 # Création du serveur MCP
-server = Server("mon-mcp-custom")
+mcp = FastMCP("mon-mcp-custom")
 
 
 # =============================================================================
-# OUTILS - Ajoute tes outils ici avec @server.tool()
+# OUTILS - Ajoute tes outils ici avec @mcp.tool()
 # =============================================================================
 
-@server.tool()
-async def saluer(nom: str) -> str:
+@mcp.tool()
+def saluer(nom: str) -> str:
     """
     Un outil exemple qui salue l'utilisateur.
     
@@ -30,8 +28,8 @@ async def saluer(nom: str) -> str:
     return f"Bonjour {nom} ! Bienvenue sur mon MCP custom 🎉"
 
 
-@server.tool()
-async def calculer(operation: str, a: float, b: float) -> str:
+@mcp.tool()
+def calculer(operation: str, a: float, b: float) -> str:
     """
     Effectue une opération mathématique simple.
     
@@ -61,20 +59,5 @@ async def calculer(operation: str, a: float, b: float) -> str:
 # POINT D'ENTRÉE
 # =============================================================================
 
-async def main():
-    """Lance le serveur MCP via stdio."""
-    async with stdio_server() as (read_stream, write_stream):
-        await server.run(
-            read_stream,
-            write_stream,
-            server.create_initialization_options()
-        )
-
-
-def run():
-    """Point d'entrée pour l'exécution du serveur."""
-    asyncio.run(main())
-
-
 if __name__ == "__main__":
-    run()
+    mcp.run(transport="stdio")
