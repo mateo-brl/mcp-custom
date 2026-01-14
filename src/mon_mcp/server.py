@@ -13,12 +13,67 @@ Windows uniquement pour le moment.
 import base64
 import io
 import json
+import ctypes
+from ctypes import wintypes
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
 # Creation du serveur MCP
 mcp = FastMCP("mon-mcp-custom")
+
+
+# =============================================================================
+# WINDOWS API (pour eviter pyautogui qui bloque)
+# =============================================================================
+
+user32 = ctypes.windll.user32
+
+class POINT(ctypes.Structure):
+    _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+
+
+def _get_cursor_pos():
+    """Recupere la position de la souris via Windows API."""
+    pt = POINT()
+    user32.GetCursorPos(ctypes.byref(pt))
+    return pt.x, pt.y
+
+
+def _set_cursor_pos(x, y):
+    """Deplace la souris via Windows API."""
+    user32.SetCursorPos(x, y)
+
+
+def _mouse_click(x, y, button="left"):
+    """Effectue un clic via Windows API."""
+    # Deplacer la souris
+    user32.SetCursorPos(x, y)
+    
+    # Constantes pour les evenements souris
+    MOUSEEVENTF_LEFTDOWN = 0x0002
+    MOUSEEVENTF_LEFTUP = 0x0004
+    MOUSEEVENTF_RIGHTDOWN = 0x0008
+    MOUSEEVENTF_RIGHTUP = 0x0010
+    MOUSEEVENTF_MIDDLEDOWN = 0x0020
+    MOUSEEVENTF_MIDDLEUP = 0x0040
+    
+    if button == "left":
+        user32.mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
+        user32.mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
+    elif button == "right":
+        user32.mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0)
+        user32.mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0)
+    elif button == "middle":
+        user32.mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, 0)
+        user32.mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, 0)
+
+
+def _mouse_scroll(clicks):
+    """Effectue un scroll via Windows API."""
+    MOUSEEVENTF_WHEEL = 0x0800
+    WHEEL_DELTA = 120
+    user32.mouse_event(MOUSEEVENTF_WHEEL, 0, 0, clicks * WHEEL_DELTA, 0)
 
 
 # =============================================================================
@@ -45,11 +100,7 @@ def ping() -> str:
     except ImportError:
         missing.append("Pillow")
     
-    # On ne teste PAS pyautogui/pygetwindow ici car ils bloquent
-    # On verifie juste si les modules existent
     import importlib.util
-    if importlib.util.find_spec("pyautogui") is None:
-        missing.append("pyautogui")
     if importlib.util.find_spec("pygetwindow") is None:
         missing.append("pygetwindow")
     
@@ -220,12 +271,7 @@ def clic_souris(x: int, y: int, bouton: str = "left") -> str:
         Confirmation du clic.
     """
     try:
-        import pyautogui
-    except ImportError:
-        return "Erreur: pyautogui non installe. Installez avec: pip install pyautogui"
-
-    try:
-        pyautogui.click(x, y, button=bouton)
+        _mouse_click(x, y, bouton)
         return f"Clic {bouton} effectue a ({x}, {y})"
     except Exception as e:
         return f"Erreur: {str(e)}"
@@ -244,12 +290,8 @@ def double_clic(x: int, y: int) -> str:
         Confirmation du double-clic.
     """
     try:
-        import pyautogui
-    except ImportError:
-        return "Erreur: pyautogui non installe. Installez avec: pip install pyautogui"
-
-    try:
-        pyautogui.doubleClick(x, y)
+        _mouse_click(x, y, "left")
+        _mouse_click(x, y, "left")
         return f"Double-clic effectue a ({x}, {y})"
     except Exception as e:
         return f"Erreur: {str(e)}"
@@ -268,20 +310,18 @@ def ecrire_texte(texte: str, intervalle: float = 0.05) -> str:
         Confirmation.
     """
     try:
-        import pyautogui
-    except ImportError:
-        return "Erreur: pyautogui non installe. Installez avec: pip install pyautogui"
-
-    try:
-        pyautogui.typewrite(texte, interval=intervalle)
+        import time
+        for char in texte:
+            # Utiliser SendInput pour chaque caractere
+            if char.isascii():
+                vk = ctypes.windll.user32.VkKeyScanW(ord(char))
+                if vk != -1:
+                    ctypes.windll.user32.keybd_event(vk & 0xFF, 0, 0, 0)
+                    ctypes.windll.user32.keybd_event(vk & 0xFF, 0, 2, 0)
+            time.sleep(intervalle)
         return f"Texte ecrit: '{texte}'"
     except Exception as e:
-        try:
-            import pyautogui
-            pyautogui.write(texte)
-            return f"Texte ecrit: '{texte}'"
-        except Exception as e2:
-            return f"Erreur: {str(e2)}"
+        return f"Erreur: {str(e)}"
 
 
 @mcp.tool()
@@ -295,17 +335,50 @@ def touche_clavier(touche: str) -> str:
     Returns:
         Confirmation.
     """
-    try:
-        import pyautogui
-    except ImportError:
-        return "Erreur: pyautogui non installe. Installez avec: pip install pyautogui"
-
+    # Mapping des touches speciales vers les codes virtuels Windows
+    VK_CODES = {
+        "enter": 0x0D, "return": 0x0D,
+        "tab": 0x09,
+        "escape": 0x1B, "esc": 0x1B,
+        "backspace": 0x08,
+        "delete": 0x2E,
+        "space": 0x20,
+        "up": 0x26, "down": 0x28, "left": 0x25, "right": 0x27,
+        "home": 0x24, "end": 0x23,
+        "pageup": 0x21, "pagedown": 0x22,
+        "ctrl": 0x11, "alt": 0x12, "shift": 0x10,
+        "f1": 0x70, "f2": 0x71, "f3": 0x72, "f4": 0x73,
+        "f5": 0x74, "f6": 0x75, "f7": 0x76, "f8": 0x77,
+        "f9": 0x78, "f10": 0x79, "f11": 0x7A, "f12": 0x7B,
+        "a": 0x41, "b": 0x42, "c": 0x43, "d": 0x44, "e": 0x45,
+        "f": 0x46, "g": 0x47, "h": 0x48, "i": 0x49, "j": 0x4A,
+        "k": 0x4B, "l": 0x4C, "m": 0x4D, "n": 0x4E, "o": 0x4F,
+        "p": 0x50, "q": 0x51, "r": 0x52, "s": 0x53, "t": 0x54,
+        "u": 0x55, "v": 0x56, "w": 0x57, "x": 0x58, "y": 0x59, "z": 0x5A,
+    }
+    
     try:
         if "+" in touche:
-            keys = touche.lower().split("+")
-            pyautogui.hotkey(*keys)
+            # Combinaison de touches
+            keys = [k.strip().lower() for k in touche.split("+")]
+            # Appuyer sur les touches
+            for key in keys:
+                vk = VK_CODES.get(key)
+                if vk:
+                    user32.keybd_event(vk, 0, 0, 0)
+            # Relacher dans l'ordre inverse
+            for key in reversed(keys):
+                vk = VK_CODES.get(key)
+                if vk:
+                    user32.keybd_event(vk, 0, 2, 0)
         else:
-            pyautogui.press(touche)
+            vk = VK_CODES.get(touche.lower())
+            if vk:
+                user32.keybd_event(vk, 0, 0, 0)
+                user32.keybd_event(vk, 0, 2, 0)
+            else:
+                return f"Touche inconnue: {touche}"
+        
         return f"Touche '{touche}' pressee"
     except Exception as e:
         return f"Erreur: {str(e)}"
@@ -320,12 +393,7 @@ def position_souris() -> str:
         Les coordonnees X, Y de la souris.
     """
     try:
-        import pyautogui
-    except ImportError:
-        return "Erreur: pyautogui non installe. Installez avec: pip install pyautogui"
-
-    try:
-        x, y = pyautogui.position()
+        x, y = _get_cursor_pos()
         return f"Position actuelle: ({x}, {y})"
     except Exception as e:
         return f"Erreur: {str(e)}"
@@ -345,12 +413,7 @@ def deplacer_souris(x: int, y: int, duree: float = 0.5) -> str:
         Confirmation.
     """
     try:
-        import pyautogui
-    except ImportError:
-        return "Erreur: pyautogui non installe. Installez avec: pip install pyautogui"
-
-    try:
-        pyautogui.moveTo(x, y, duration=duree)
+        _set_cursor_pos(x, y)
         return f"Souris deplacee vers ({x}, {y})"
     except Exception as e:
         return f"Erreur: {str(e)}"
@@ -369,13 +432,8 @@ def scroll(direction: str = "down", clicks: int = 3) -> str:
         Confirmation.
     """
     try:
-        import pyautogui
-    except ImportError:
-        return "Erreur: pyautogui non installe. Installez avec: pip install pyautogui"
-
-    try:
         amount = clicks if direction == "up" else -clicks
-        pyautogui.scroll(amount)
+        _mouse_scroll(amount)
         return f"Scroll {direction} de {clicks} clics"
     except Exception as e:
         return f"Erreur: {str(e)}"
