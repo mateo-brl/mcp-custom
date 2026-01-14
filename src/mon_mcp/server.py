@@ -2,12 +2,12 @@
 Serveur MCP Custom - Agent d'assistance visuelle.
 
 Ce serveur permet de :
-- Vérifier que le MCP fonctionne (ping)
-- Capturer les écrans de l'ordinateur
-- Lister les fenêtres ouvertes
+- Verifier que le MCP fonctionne (ping)
+- Capturer les ecrans de l'ordinateur
+- Lister les fenetres ouvertes
 - Interagir avec l'ordinateur (clic, frappe clavier)
 
-⚠️ Windows uniquement pour le moment.
+Windows uniquement pour le moment.
 """
 
 import base64
@@ -17,35 +17,8 @@ from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
-# Création du serveur MCP
+# Creation du serveur MCP
 mcp = FastMCP("mon-mcp-custom")
-
-
-# =============================================================================
-# UTILITAIRES
-# =============================================================================
-
-def _check_dependencies():
-    """Vérifie que les dépendances sont installées."""
-    missing = []
-    try:
-        import mss
-    except ImportError:
-        missing.append("mss")
-    try:
-        from PIL import Image
-    except ImportError:
-        missing.append("Pillow")
-    try:
-        import pyautogui
-    except ImportError:
-        missing.append("pyautogui")
-    try:
-        import pygetwindow
-    except ImportError:
-        missing.append("pygetwindow")
-    
-    return missing
 
 
 # =============================================================================
@@ -55,68 +28,78 @@ def _check_dependencies():
 @mcp.tool()
 def ping() -> str:
     """
-    Vérifie que le serveur MCP fonctionne correctement.
-    
+    Verifie que le serveur MCP fonctionne correctement.
+
     Returns:
-        "pong" si le serveur fonctionne, avec la liste des dépendances manquantes si applicable.
+        "pong" si le serveur fonctionne, avec la liste des dependances manquantes si applicable.
     """
-    missing = _check_dependencies()
+    missing = []
+    
+    try:
+        import mss
+    except ImportError:
+        missing.append("mss")
+    
+    try:
+        from PIL import Image
+    except ImportError:
+        missing.append("Pillow")
+    
+    # On ne teste PAS pyautogui/pygetwindow ici car ils bloquent
+    # On verifie juste si les modules existent
+    import importlib.util
+    if importlib.util.find_spec("pyautogui") is None:
+        missing.append("pyautogui")
+    if importlib.util.find_spec("pygetwindow") is None:
+        missing.append("pygetwindow")
+    
     if missing:
-        return f"pong ✓ (MCP OK) - ⚠️ Dépendances manquantes pour les fonctions avancées: {', '.join(missing)}. Installez-les avec: pip install {' '.join(missing)}"
-    return "pong ✓ (MCP OK - Toutes les dépendances sont installées)"
+        return f"pong (MCP OK) - Dependances manquantes: {', '.join(missing)}. Installez avec: pip install {' '.join(missing)}"
+    return "pong (MCP OK - Toutes les dependances sont installees)"
 
 
 @mcp.tool()
 def capture_ecrans() -> str:
     """
-    Capture tous les écrans de l'ordinateur.
-    
+    Capture tous les ecrans de l'ordinateur.
+
     Returns:
-        Une description des écrans capturés avec les images en base64.
+        Une description des ecrans captures avec les images en base64.
     """
     try:
         import mss
         from PIL import Image
     except ImportError as e:
-        return f"Erreur: dépendance manquante ({e}). Installez avec: pip install mss Pillow"
-    
+        return f"Erreur: dependance manquante ({e}). Installez avec: pip install mss Pillow"
+
     try:
         with mss.mss() as sct:
             monitors = sct.monitors
             result = {
-                "nombre_ecrans": len(monitors) - 1,  # -1 car le premier est l'écran virtuel combiné
+                "nombre_ecrans": len(monitors) - 1,
                 "ecrans": []
             }
-            
-            # Capturer chaque écran (on skip le monitor[0] qui est l'écran virtuel combiné)
+
             for i, monitor in enumerate(monitors[1:], 1):
                 screenshot = sct.grab(monitor)
-                
-                # Convertir en PNG base64
                 img = Image.frombytes("RGB", screenshot.size, screenshot.bgra, "raw", "BGRX")
                 
-                # Réduire la taille pour ne pas surcharger (max 1920x1080)
                 max_size = (1920, 1080)
                 img.thumbnail(max_size, Image.Resampling.LANCZOS)
-                
+
                 buffer = io.BytesIO()
                 img.save(buffer, format="PNG", optimize=True)
                 img_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
-                
+
                 result["ecrans"].append({
                     "ecran": i,
                     "resolution": f"{monitor['width']}x{monitor['height']}",
                     "position": f"({monitor['left']}, {monitor['top']})",
                     "image_base64": img_base64
                 })
-            
-            # Retourner un résumé + les images
-            summary = f"✓ {result['nombre_ecrans']} écran(s) capturé(s):\n"
-            for ecran in result["ecrans"]:
-                summary += f"  - Écran {ecran['ecran']}: {ecran['resolution']} à {ecran['position']}\n"
-            
+
             return json.dumps(result, ensure_ascii=False)
-            
+
     except Exception as e:
         return f"Erreur lors de la capture: {str(e)}"
 
@@ -124,37 +107,35 @@ def capture_ecrans() -> str:
 @mcp.tool()
 def capture_ecran_principal() -> str:
     """
-    Capture uniquement l'écran principal.
-    
+    Capture uniquement l'ecran principal.
+
     Returns:
-        L'image de l'écran principal en base64.
+        L'image de l'ecran principal en base64.
     """
     try:
         import mss
         from PIL import Image
     except ImportError as e:
-        return f"Erreur: dépendance manquante ({e}). Installez avec: pip install mss Pillow"
-    
+        return f"Erreur: dependance manquante ({e}). Installez avec: pip install mss Pillow"
+
     try:
         with mss.mss() as sct:
-            monitor = sct.monitors[1]  # Écran principal
+            monitor = sct.monitors[1]
             screenshot = sct.grab(monitor)
-            
             img = Image.frombytes("RGB", screenshot.size, screenshot.bgra, "raw", "BGRX")
             
-            # Réduire la taille
             max_size = (1920, 1080)
             img.thumbnail(max_size, Image.Resampling.LANCZOS)
-            
+
             buffer = io.BytesIO()
             img.save(buffer, format="PNG", optimize=True)
             img_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
-            
+
             return json.dumps({
                 "resolution": f"{monitor['width']}x{monitor['height']}",
                 "image_base64": img_base64
             })
-            
+
     except Exception as e:
         return f"Erreur lors de la capture: {str(e)}"
 
@@ -162,22 +143,22 @@ def capture_ecran_principal() -> str:
 @mcp.tool()
 def liste_fenetres() -> str:
     """
-    Liste toutes les fenêtres ouvertes sur l'ordinateur.
-    
+    Liste toutes les fenetres ouvertes sur l'ordinateur.
+
     Returns:
-        La liste des fenêtres avec leur titre et position.
+        La liste des fenetres avec leur titre et position.
     """
     try:
         import pygetwindow as gw
     except ImportError:
-        return "Erreur: pygetwindow non installé. Installez avec: pip install pygetwindow"
-    
+        return "Erreur: pygetwindow non installe. Installez avec: pip install pygetwindow"
+
     try:
         windows = gw.getAllWindows()
         result = []
-        
+
         for win in windows:
-            if win.title:  # Ignorer les fenêtres sans titre
+            if win.title:
                 result.append({
                     "titre": win.title,
                     "position": f"({win.left}, {win.top})",
@@ -186,9 +167,9 @@ def liste_fenetres() -> str:
                     "minimisee": win.isMinimized,
                     "active": win.isActive
                 })
-        
+
         return json.dumps(result, ensure_ascii=False, indent=2)
-        
+
     except Exception as e:
         return f"Erreur: {str(e)}"
 
@@ -196,10 +177,10 @@ def liste_fenetres() -> str:
 @mcp.tool()
 def focus_fenetre(titre: str) -> str:
     """
-    Met le focus sur une fenêtre spécifique.
-    
+    Met le focus sur une fenetre specifique.
+
     Args:
-        titre: Le titre (ou partie du titre) de la fenêtre à activer.
+        titre: Le titre (ou partie du titre) de la fenetre a activer.
         
     Returns:
         Confirmation ou erreur.
@@ -207,20 +188,20 @@ def focus_fenetre(titre: str) -> str:
     try:
         import pygetwindow as gw
     except ImportError:
-        return "Erreur: pygetwindow non installé. Installez avec: pip install pygetwindow"
-    
+        return "Erreur: pygetwindow non installe. Installez avec: pip install pygetwindow"
+
     try:
         windows = gw.getWindowsWithTitle(titre)
         if not windows:
-            return f"Aucune fenêtre trouvée avec le titre contenant: '{titre}'"
-        
+            return f"Aucune fenetre trouvee avec le titre contenant: '{titre}'"
+
         win = windows[0]
         if win.isMinimized:
             win.restore()
         win.activate()
-        
-        return f"✓ Fenêtre '{win.title}' activée"
-        
+
+        return f"Fenetre '{win.title}' activee"
+
     except Exception as e:
         return f"Erreur: {str(e)}"
 
@@ -228,12 +209,12 @@ def focus_fenetre(titre: str) -> str:
 @mcp.tool()
 def clic_souris(x: int, y: int, bouton: str = "left") -> str:
     """
-    Effectue un clic de souris à une position donnée.
-    
+    Effectue un clic de souris a une position donnee.
+
     Args:
-        x: Position X sur l'écran
-        y: Position Y sur l'écran
-        bouton: "left", "right" ou "middle" (défaut: "left")
+        x: Position X sur l'ecran
+        y: Position Y sur l'ecran
+        bouton: "left", "right" ou "middle" (defaut: "left")
         
     Returns:
         Confirmation du clic.
@@ -241,11 +222,11 @@ def clic_souris(x: int, y: int, bouton: str = "left") -> str:
     try:
         import pyautogui
     except ImportError:
-        return "Erreur: pyautogui non installé. Installez avec: pip install pyautogui"
-    
+        return "Erreur: pyautogui non installe. Installez avec: pip install pyautogui"
+
     try:
         pyautogui.click(x, y, button=bouton)
-        return f"✓ Clic {bouton} effectué à ({x}, {y})"
+        return f"Clic {bouton} effectue a ({x}, {y})"
     except Exception as e:
         return f"Erreur: {str(e)}"
 
@@ -253,11 +234,11 @@ def clic_souris(x: int, y: int, bouton: str = "left") -> str:
 @mcp.tool()
 def double_clic(x: int, y: int) -> str:
     """
-    Effectue un double-clic à une position donnée.
-    
+    Effectue un double-clic a une position donnee.
+
     Args:
-        x: Position X sur l'écran
-        y: Position Y sur l'écran
+        x: Position X sur l'ecran
+        y: Position Y sur l'ecran
         
     Returns:
         Confirmation du double-clic.
@@ -265,11 +246,11 @@ def double_clic(x: int, y: int) -> str:
     try:
         import pyautogui
     except ImportError:
-        return "Erreur: pyautogui non installé. Installez avec: pip install pyautogui"
-    
+        return "Erreur: pyautogui non installe. Installez avec: pip install pyautogui"
+
     try:
         pyautogui.doubleClick(x, y)
-        return f"✓ Double-clic effectué à ({x}, {y})"
+        return f"Double-clic effectue a ({x}, {y})"
     except Exception as e:
         return f"Erreur: {str(e)}"
 
@@ -277,11 +258,11 @@ def double_clic(x: int, y: int) -> str:
 @mcp.tool()
 def ecrire_texte(texte: str, intervalle: float = 0.05) -> str:
     """
-    Écrit du texte au clavier (simule la frappe).
-    
+    Ecrit du texte au clavier (simule la frappe).
+
     Args:
-        texte: Le texte à écrire
-        intervalle: Délai entre chaque caractère en secondes (défaut: 0.05)
+        texte: Le texte a ecrire
+        intervalle: Delai entre chaque caractere en secondes (defaut: 0.05)
         
     Returns:
         Confirmation.
@@ -289,16 +270,16 @@ def ecrire_texte(texte: str, intervalle: float = 0.05) -> str:
     try:
         import pyautogui
     except ImportError:
-        return "Erreur: pyautogui non installé. Installez avec: pip install pyautogui"
-    
+        return "Erreur: pyautogui non installe. Installez avec: pip install pyautogui"
+
     try:
         pyautogui.typewrite(texte, interval=intervalle)
-        return f"✓ Texte écrit: '{texte}'"
+        return f"Texte ecrit: '{texte}'"
     except Exception as e:
-        # Pour les caractères spéciaux/unicode, utiliser write
         try:
+            import pyautogui
             pyautogui.write(texte)
-            return f"✓ Texte écrit: '{texte}'"
+            return f"Texte ecrit: '{texte}'"
         except Exception as e2:
             return f"Erreur: {str(e2)}"
 
@@ -306,10 +287,10 @@ def ecrire_texte(texte: str, intervalle: float = 0.05) -> str:
 @mcp.tool()
 def touche_clavier(touche: str) -> str:
     """
-    Appuie sur une touche spéciale du clavier.
-    
+    Appuie sur une touche speciale du clavier.
+
     Args:
-        touche: La touche à presser (ex: "enter", "tab", "escape", "backspace", "ctrl+c", "alt+f4")
+        touche: La touche a presser (ex: "enter", "tab", "escape", "backspace", "ctrl+c", "alt+f4")
         
     Returns:
         Confirmation.
@@ -317,16 +298,15 @@ def touche_clavier(touche: str) -> str:
     try:
         import pyautogui
     except ImportError:
-        return "Erreur: pyautogui non installé. Installez avec: pip install pyautogui"
-    
+        return "Erreur: pyautogui non installe. Installez avec: pip install pyautogui"
+
     try:
         if "+" in touche:
-            # Combinaison de touches (ex: ctrl+c)
             keys = touche.lower().split("+")
             pyautogui.hotkey(*keys)
         else:
             pyautogui.press(touche)
-        return f"✓ Touche '{touche}' pressée"
+        return f"Touche '{touche}' pressee"
     except Exception as e:
         return f"Erreur: {str(e)}"
 
@@ -335,15 +315,15 @@ def touche_clavier(touche: str) -> str:
 def position_souris() -> str:
     """
     Retourne la position actuelle de la souris.
-    
+
     Returns:
-        Les coordonnées X, Y de la souris.
+        Les coordonnees X, Y de la souris.
     """
     try:
         import pyautogui
     except ImportError:
-        return "Erreur: pyautogui non installé. Installez avec: pip install pyautogui"
-    
+        return "Erreur: pyautogui non installe. Installez avec: pip install pyautogui"
+
     try:
         x, y = pyautogui.position()
         return f"Position actuelle: ({x}, {y})"
@@ -354,12 +334,12 @@ def position_souris() -> str:
 @mcp.tool()
 def deplacer_souris(x: int, y: int, duree: float = 0.5) -> str:
     """
-    Déplace la souris vers une position donnée.
-    
+    Deplace la souris vers une position donnee.
+
     Args:
         x: Position X cible
         y: Position Y cible
-        duree: Durée du déplacement en secondes (défaut: 0.5)
+        duree: Duree du deplacement en secondes (defaut: 0.5)
         
     Returns:
         Confirmation.
@@ -367,11 +347,11 @@ def deplacer_souris(x: int, y: int, duree: float = 0.5) -> str:
     try:
         import pyautogui
     except ImportError:
-        return "Erreur: pyautogui non installé. Installez avec: pip install pyautogui"
-    
+        return "Erreur: pyautogui non installe. Installez avec: pip install pyautogui"
+
     try:
         pyautogui.moveTo(x, y, duration=duree)
-        return f"✓ Souris déplacée vers ({x}, {y})"
+        return f"Souris deplacee vers ({x}, {y})"
     except Exception as e:
         return f"Erreur: {str(e)}"
 
@@ -379,11 +359,11 @@ def deplacer_souris(x: int, y: int, duree: float = 0.5) -> str:
 @mcp.tool()
 def scroll(direction: str = "down", clicks: int = 3) -> str:
     """
-    Effectue un scroll (défilement) à la position actuelle de la souris.
-    
+    Effectue un scroll (defilement) a la position actuelle de la souris.
+
     Args:
-        direction: "up" ou "down" (défaut: "down")
-        clicks: Nombre de "clics" de scroll (défaut: 3)
+        direction: "up" ou "down" (defaut: "down")
+        clicks: Nombre de "clics" de scroll (defaut: 3)
         
     Returns:
         Confirmation.
@@ -391,18 +371,18 @@ def scroll(direction: str = "down", clicks: int = 3) -> str:
     try:
         import pyautogui
     except ImportError:
-        return "Erreur: pyautogui non installé. Installez avec: pip install pyautogui"
-    
+        return "Erreur: pyautogui non installe. Installez avec: pip install pyautogui"
+
     try:
         amount = clicks if direction == "up" else -clicks
         pyautogui.scroll(amount)
-        return f"✓ Scroll {direction} de {clicks} clics"
+        return f"Scroll {direction} de {clicks} clics"
     except Exception as e:
         return f"Erreur: {str(e)}"
 
 
 # =============================================================================
-# POINT D'ENTRÉE
+# POINT D'ENTREE
 # =============================================================================
 
 if __name__ == "__main__":
