@@ -4,20 +4,21 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mon-mcp-custom"
-version = "0.4.0"
-description = "Serveur MCP custom complet: capture d'ecran, controle ordinateur, gestion fichiers, systeme, notifications (Windows)"
+version = "0.5.0"
+description = "Serveur MCP custom complet: capture d'ecran, controle ordinateur, gestion fichiers, systeme, notifications, OCR, Excel (Windows + Linux)"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [
     { name = "Mateo Baril", email = "mateo@github.com" }
 ]
-keywords = ["mcp", "ai", "claude", "llm", "tools", "automation", "screen-capture", "file-management", "system-monitor"]
+keywords = ["mcp", "ai", "claude", "llm", "tools", "automation", "screen-capture", "file-management", "system-monitor", "ocr", "excel"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -29,12 +30,24 @@ dependencies = [
     "mcp>=1.0.0",
     "mss>=9.0.0",
     "Pillow>=10.0.0",
-    "pygetwindow>=0.0.9",
     "psutil>=5.9.0",
-    "winotify>=1.1.0",
+    "pygetwindow>=0.0.9; sys_platform == 'win32'",
+    "winotify>=1.1.0; sys_platform == 'win32'",
+    "pynput>=1.7.6; sys_platform == 'linux'",
+    "pyperclip>=1.8.0; sys_platform == 'linux'",
+    "notify-py>=0.3.0; sys_platform == 'linux'",
 ]
 
 [project.optional-dependencies]
+ocr = [
+    "pytesseract>=0.3.10",
+]
+excel = [
+    "openpyxl>=3.1.0",
+]
+all = [
+    "mon-mcp-custom[ocr,excel]",
+]
 dev = [
     "pytest>=7.0.0",
     "ruff>=0.1.0",

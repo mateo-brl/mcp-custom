@@ -2,16 +2,24 @@
 
 import json
 import os
+import sys
 import shutil
 from datetime import datetime
 from pathlib import Path
 
 # Chemins systeme proteges contre la suppression
-PROTECTED_PATHS = {
-    "C:\\Windows", "C:\\Program Files", "C:\\Program Files (x86)",
-    "C:\\ProgramData", "C:\\Users", "C:\\System Volume Information",
-    "C:\\$Recycle.Bin", "C:\\Recovery",
-}
+if sys.platform == "win32":
+    PROTECTED_PATHS = {
+        "C:\\Windows", "C:\\Program Files", "C:\\Program Files (x86)",
+        "C:\\ProgramData", "C:\\Users", "C:\\System Volume Information",
+        "C:\\$Recycle.Bin", "C:\\Recovery",
+    }
+else:
+    PROTECTED_PATHS = {
+        "/", "/bin", "/sbin", "/usr", "/usr/bin", "/usr/sbin",
+        "/etc", "/var", "/boot", "/dev", "/proc", "/sys",
+        "/lib", "/lib64", "/root", "/home",
+    }
 
 MAX_READ_SIZE = 10 * 1024 * 1024  # 10 MB
 
@@ -19,12 +27,18 @@ MAX_READ_SIZE = 10 * 1024 * 1024  # 10 MB
 def _is_protected_path(chemin: str) -> bool:
     """Verifie si un chemin est protege."""
     normalized = os.path.normpath(os.path.abspath(chemin))
-    # Refuse les racines de lecteur (C:\, D:\, etc.)
-    if len(normalized) <= 3:
-        return True
-    for protected in PROTECTED_PATHS:
-        if normalized.lower() == protected.lower():
+    if sys.platform == "win32":
+        if len(normalized) <= 3:
             return True
+        for protected in PROTECTED_PATHS:
+            if normalized.lower() == protected.lower():
+                return True
+    else:
+        if normalized == "/":
+            return True
+        for protected in PROTECTED_PATHS:
+            if normalized == protected:
+                return True
     return False
 
 

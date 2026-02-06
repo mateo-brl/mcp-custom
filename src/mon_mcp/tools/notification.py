@@ -1,9 +1,11 @@
-"""Outil MCP pour les notifications Windows (toast)."""
+"""Outil MCP pour les notifications desktop."""
+
+from mon_mcp.platform_api import send_notification as _send_notification
 
 
 def notification(titre: str, message: str, duree: str = "short") -> str:
     """
-    Envoie une notification Windows (toast).
+    Envoie une notification desktop (toast).
 
     Args:
         titre: Titre de la notification
@@ -14,19 +16,7 @@ def notification(titre: str, message: str, duree: str = "short") -> str:
         Confirmation.
     """
     try:
-        from winotify import Notification, audio
-    except ImportError:
-        return "Erreur: winotify non installe. pip install winotify"
-
-    try:
-        toast = Notification(
-            app_id="MCP Custom",
-            title=titre,
-            msg=message,
-            duration=duree,
-        )
-        toast.set_audio(audio.Default, loop=False)
-        toast.show()
+        _send_notification(titre, message, duree)
         return f"Notification envoyee: '{titre}'"
     except Exception as e:
         return f"Erreur: {str(e)}"

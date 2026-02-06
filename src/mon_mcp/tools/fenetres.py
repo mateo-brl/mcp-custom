@@ -1,6 +1,8 @@
-"""Outils MCP pour la gestion des fenetres Windows."""
+"""Outils MCP pour la gestion des fenetres."""
 
 import json
+
+from mon_mcp.platform_api import list_windows, focus_window as _focus_window
 
 
 def liste_fenetres() -> str:
@@ -11,26 +13,8 @@ def liste_fenetres() -> str:
         La liste des fenetres avec leur titre et position.
     """
     try:
-        import pygetwindow as gw
-    except ImportError:
-        return "Erreur: pygetwindow non installe. pip install pygetwindow"
-
-    try:
-        windows = gw.getAllWindows()
-        result = []
-
-        for win in windows:
-            if win.title:
-                result.append({
-                    "titre": win.title,
-                    "position": f"({win.left}, {win.top})",
-                    "taille": f"{win.width}x{win.height}",
-                    "visible": win.visible,
-                    "minimisee": win.isMinimized,
-                    "active": win.isActive,
-                })
-
-        return json.dumps(result, ensure_ascii=False, indent=2)
+        windows = list_windows()
+        return json.dumps(windows, ensure_ascii=False, indent=2)
     except Exception as e:
         return f"Erreur: {str(e)}"
 
@@ -46,21 +30,8 @@ def focus_fenetre(titre: str) -> str:
         Confirmation ou erreur.
     """
     try:
-        import pygetwindow as gw
-    except ImportError:
-        return "Erreur: pygetwindow non installe. pip install pygetwindow"
-
-    try:
-        windows = gw.getWindowsWithTitle(titre)
-        if not windows:
-            return f"Aucune fenetre trouvee avec le titre contenant: '{titre}'"
-
-        win = windows[0]
-        if win.isMinimized:
-            win.restore()
-        win.activate()
-
-        return f"Fenetre '{win.title}' activee"
+        activated = _focus_window(titre)
+        return f"Fenetre '{activated}' activee"
     except Exception as e:
         return f"Erreur: {str(e)}"
 

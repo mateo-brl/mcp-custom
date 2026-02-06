@@ -2,14 +2,11 @@
 
 import time
 
-from mon_mcp.win_api import (
+from mon_mcp.platform_api import (
     get_cursor_pos,
     set_cursor_pos,
     mouse_click,
     mouse_scroll,
-    MOUSEEVENTF_LEFTDOWN,
-    MOUSEEVENTF_LEFTUP,
-    user32,
 )
 
 
@@ -45,11 +42,9 @@ def double_clic(x: int, y: int) -> str:
     """
     try:
         set_cursor_pos(x, y)
-        user32.mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
-        user32.mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
+        mouse_click(x, y, "left")
         time.sleep(0.05)
-        user32.mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
-        user32.mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
+        mouse_click(x, y, "left")
         return f"Double-clic effectue a ({x}, {y})"
     except Exception as e:
         return f"Erreur: {str(e)}"

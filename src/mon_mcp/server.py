@@ -8,10 +8,14 @@ Ce serveur permet de :
 - Interagir avec l'ordinateur (clic, frappe clavier, scroll)
 - Gerer des fichiers (lire, ecrire, copier, deplacer, supprimer)
 - Surveiller le systeme (processus, CPU, RAM, disque)
-- Envoyer des notifications Windows
+- Envoyer des notifications
 - Lire/ecrire le presse-papier
+- Lancer des applications et ouvrir des URLs
+- Rechercher des fichiers par nom et contenu
+- Extraire du texte par OCR
+- Manipuler des fichiers Excel et CSV
 
-Windows uniquement pour le moment.
+Compatible Windows et Linux.
 """
 
 import importlib.util
@@ -28,6 +32,7 @@ mcp = FastMCP("mon-mcp-custom")
 
 from mon_mcp.tools import capture, clavier, souris, fenetres  # noqa: E402
 from mon_mcp.tools import fichiers, systeme, notification, clipboard  # noqa: E402
+from mon_mcp.tools import lanceur, recherche, ocr, excel  # noqa: E402
 
 capture.register_tools(mcp)
 clavier.register_tools(mcp)
@@ -37,6 +42,10 @@ fichiers.register_tools(mcp)
 systeme.register_tools(mcp)
 notification.register_tools(mcp)
 clipboard.register_tools(mcp)
+lanceur.register_tools(mcp)
+recherche.register_tools(mcp)
+ocr.register_tools(mcp)
+excel.register_tools(mcp)
 
 
 # =============================================================================
@@ -51,24 +60,39 @@ def ping() -> str:
     Returns:
         "pong" si le serveur fonctionne, avec la liste des dependances manquantes si applicable.
     """
+    import sys
     missing = []
 
+    # Dependances cross-platform
     for module, name in [
         ("mss", "mss"),
         ("PIL", "Pillow"),
-        ("pygetwindow", "pygetwindow"),
         ("psutil", "psutil"),
-        ("winotify", "winotify"),
     ]:
         if importlib.util.find_spec(module) is None:
             missing.append(name)
 
+    # Dependances specifiques a la plateforme
+    if sys.platform == "win32":
+        for module, name in [("pygetwindow", "pygetwindow"), ("winotify", "winotify")]:
+            if importlib.util.find_spec(module) is None:
+                missing.append(name)
+    elif sys.platform == "linux":
+        for module, name in [("pynput", "pynput"), ("pyperclip", "pyperclip"), ("notifypy", "notify-py")]:
+            if importlib.util.find_spec(module) is None:
+                missing.append(name)
+
+    # Dependances optionnelles
+    for module, name in [("pytesseract", "pytesseract"), ("openpyxl", "openpyxl")]:
+        if importlib.util.find_spec(module) is None:
+            missing.append(f"{name} (optionnel)")
+
+    platform_name = {"win32": "Windows", "linux": "Linux"}.get(sys.platform, sys.platform)
     if missing:
         return (
-            f"pong (MCP OK) - Dependances manquantes: {', '.join(missing)}. "
-            f"Installez avec: pip install {' '.join(missing)}"
+            f"pong (MCP OK - {platform_name}) - Manquantes: {', '.join(missing)}"
         )
-    return "pong (MCP OK - Toutes les dependances sont installees)"
+    return f"pong (MCP OK - {platform_name} - Toutes les dependances installees)"
 
 
 # =============================================================================

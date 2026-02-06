@@ -1,15 +1,6 @@
 """Outils MCP pour le controle du clavier."""
 
-import time
-
-from mon_mcp.win_api import (
-    VK_CODES,
-    KEYEVENTF_KEYUP,
-    send_input,
-    make_key_input,
-    make_unicode_input,
-    user32,
-)
+from mon_mcp.platform_api import type_text as _type_text, press_key as _press_key
 
 
 def ecrire_texte(texte: str, intervalle: float = 0.05) -> str:
@@ -25,12 +16,7 @@ def ecrire_texte(texte: str, intervalle: float = 0.05) -> str:
         Confirmation.
     """
     try:
-        for char in texte:
-            code = ord(char)
-            down = make_unicode_input(code, key_up=False)
-            up = make_unicode_input(code, key_up=True)
-            send_input(down, up)
-            time.sleep(intervalle)
+        _type_text(texte, intervalle)
         return f"Texte ecrit: '{texte}'"
     except Exception as e:
         return f"Erreur: {str(e)}"
@@ -47,28 +33,10 @@ def touche_clavier(touche: str) -> str:
         Confirmation.
     """
     try:
-        if "+" in touche:
-            keys = [k.strip().lower() for k in touche.split("+")]
-            for key in keys:
-                vk = VK_CODES.get(key)
-                if vk:
-                    inp = make_key_input(vk=vk)
-                    send_input(inp)
-            for key in reversed(keys):
-                vk = VK_CODES.get(key)
-                if vk:
-                    inp = make_key_input(vk=vk, flags=KEYEVENTF_KEYUP)
-                    send_input(inp)
-        else:
-            vk = VK_CODES.get(touche.lower())
-            if vk:
-                down = make_key_input(vk=vk)
-                up = make_key_input(vk=vk, flags=KEYEVENTF_KEYUP)
-                send_input(down, up)
-            else:
-                return f"Touche inconnue: {touche}"
-
+        _press_key(touche)
         return f"Touche '{touche}' pressee"
+    except ValueError as e:
+        return str(e)
     except Exception as e:
         return f"Erreur: {str(e)}"
 

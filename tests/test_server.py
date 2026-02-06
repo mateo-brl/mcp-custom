@@ -11,7 +11,7 @@ def test_ping():
 
 
 def test_all_tools_registered():
-    """Verifie que tous les 27 outils sont enregistres."""
+    """Verifie que tous les 37 outils sont enregistres."""
     tools = list(mcp._tool_manager._tools.keys())
     expected = [
         "ping",
@@ -32,7 +32,15 @@ def test_all_tools_registered():
         "notification",
         # Clipboard
         "lire_presse_papier", "ecrire_presse_papier",
+        # Lanceur
+        "lancer_app", "ouvrir_url",
+        # Recherche
+        "rechercher_fichiers",
+        # OCR
+        "ocr_image", "ocr_ecran",
+        # Excel/CSV
+        "lire_excel", "ecrire_excel", "lire_csv", "ecrire_csv", "info_excel",
     ]
     for name in expected:
         assert name in tools, f"Outil manquant: {name}"
-    assert len(tools) == 27
+    assert len(tools) == 37

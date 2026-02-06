@@ -4,7 +4,7 @@ import base64
 import io
 import json
 
-from mon_mcp.win_api import get_virtual_screen_bounds
+from mon_mcp.platform_api import get_virtual_screen_bounds
 
 
 def _capture_region(monitor, max_size=None):

@@ -2,14 +2,23 @@
 
 import json
 import platform
+import sys
 
-# Processus critiques Windows proteges contre la terminaison
-PROTECTED_PROCESSES = {
-    "csrss.exe", "wininit.exe", "winlogon.exe", "services.exe",
-    "lsass.exe", "smss.exe", "svchost.exe", "explorer.exe",
-    "dwm.exe", "system", "system idle process", "registry",
-    "fontdrvhost.exe", "sihost.exe", "taskhostw.exe",
-}
+# Processus critiques proteges contre la terminaison
+if sys.platform == "win32":
+    PROTECTED_PROCESSES = {
+        "csrss.exe", "wininit.exe", "winlogon.exe", "services.exe",
+        "lsass.exe", "smss.exe", "svchost.exe", "explorer.exe",
+        "dwm.exe", "system", "system idle process", "registry",
+        "fontdrvhost.exe", "sihost.exe", "taskhostw.exe",
+    }
+else:
+    PROTECTED_PROCESSES = {
+        "init", "systemd", "kthreadd", "ksoftirqd", "kworker",
+        "rcu_sched", "migration", "watchdog", "sshd", "cron",
+        "dbus-daemon", "networkmanager", "journald", "udevd",
+        "xorg", "gdm", "lightdm", "pulseaudio", "pipewire",
+    }
 
 
 def liste_processus(tri: str = "memory") -> str:
