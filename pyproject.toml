@@ -4,15 +4,15 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mon-mcp-custom"
-version = "0.3.0"
-description = "Serveur MCP custom avec capture d'ecran et controle de l'ordinateur (Windows)"
+version = "0.4.0"
+description = "Serveur MCP custom complet: capture d'ecran, controle ordinateur, gestion fichiers, systeme, notifications (Windows)"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [
     { name = "Mateo Baril", email = "mateo@github.com" }
 ]
-keywords = ["mcp", "ai", "claude", "llm", "tools", "automation", "screen-capture"]
+keywords = ["mcp", "ai", "claude", "llm", "tools", "automation", "screen-capture", "file-management", "system-monitor"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -30,6 +30,8 @@ dependencies = [
     "mss>=9.0.0",
     "Pillow>=10.0.0",
     "pygetwindow>=0.0.9",
+    "psutil>=5.9.0",
+    "winotify>=1.1.0",
 ]
 
 [project.optional-dependencies]
