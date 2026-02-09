@@ -1,10 +1,10 @@
 # Mon MCP Custom
 
-Un serveur [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) qui permet a Claude de **voir vos ecrans**, **interagir avec votre ordinateur**, **gerer vos fichiers**, **surveiller votre systeme** et plus encore.
+Un serveur [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) de type **Cowork** qui permet a Claude de **voir vos ecrans**, **executer du code**, **gerer un workspace**, **telecharger du contenu web**, **generer des documents** et bien plus.
 
-> **Compatible Windows et Linux** — detection automatique de la plateforme.
+> **Compatible Windows et Linux** — detection automatique de la plateforme. 58 outils.
 
-## Fonctionnalites (37 outils)
+## Fonctionnalites (58 outils)
 
 | Categorie | Outil | Description |
 |-----------|-------|-------------|
@@ -45,6 +45,27 @@ Un serveur [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) qui 
 | **Excel/CSV** | `lire_csv` | Lit un fichier CSV en JSON |
 | **Excel/CSV** | `ecrire_csv` | Ecrit un fichier CSV depuis des donnees JSON |
 | **Excel/CSV** | `info_excel` | Infos sur un fichier Excel (feuilles, lignes, colonnes) |
+| **Execution** | `executer_commande` | Execute une commande shell avec capture stdout/stderr |
+| **Execution** | `executer_python` | Execute du code Python dans un subprocess isole |
+| **Execution** | `executer_script` | Execute un script (.py, .sh, .bat, .ps1) |
+| **Execution** | `verifier_commande` | Verifie si un executable existe sur le systeme |
+| **Execution** | `lister_environnement` | Liste les variables d'environnement (secrets masques) |
+| **Workspace** | `definir_workspace` | Definit le dossier de travail actif |
+| **Workspace** | `obtenir_workspace` | Retourne info du workspace (chemin, taille, fichiers) |
+| **Workspace** | `lister_workspace` | Liste les fichiers du workspace avec filtrage |
+| **Workspace** | `nettoyer_workspace` | Supprime les fichiers temporaires (dry-run par defaut) |
+| **Workspace** | `archiver_workspace` | Cree un .zip du workspace |
+| **Web** | `telecharger_url` | Telecharge un fichier depuis une URL |
+| **Web** | `extraire_texte_url` | Extrait le texte lisible d'une page web |
+| **Web** | `verifier_url` | Verifie si une URL est accessible |
+| **Web** | `extraire_liens` | Extrait tous les liens d'une page |
+| **Documents** | `creer_word` | Cree un .docx depuis Markdown/texte |
+| **Documents** | `creer_powerpoint` | Cree un .pptx depuis des donnees JSON |
+| **Documents** | `creer_pdf` | Cree un PDF depuis Markdown/HTML/texte |
+| **Contexte** | `definir_contexte` | Stocke une variable de session |
+| **Contexte** | `obtenir_contexte` | Lit une variable ou tout le contexte |
+| **Contexte** | `supprimer_contexte` | Supprime une variable de session |
+| **Contexte** | `sauvegarder_contexte` | Persiste le contexte en fichier JSON |
 
 ## Cas d'usage
 
@@ -52,12 +73,14 @@ Un serveur [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) qui 
 - **Gestion de fichiers** : "Cree un dossier projet et copie ces fichiers"
 - **Monitoring** : "Quel processus utilise le plus de memoire ?"
 - **Automatisation** : "Aide-moi a remplir ce formulaire"
-- **Debogage** : "Capture cette zone de l'ecran pour voir l'erreur"
-- **Notifications** : "Previens-moi quand c'est termine"
+- **Execution** : "Lance npm install dans mon projet et montre-moi le resultat"
+- **Workspace** : "Cree un workspace de travail et organise mes fichiers dedans"
+- **Web** : "Telecharge ce CSV depuis cette URL et extrait les donnees"
+- **Documents** : "Cree un rapport Word avec ces resultats d'analyse"
 - **Recherche** : "Trouve tous les fichiers .csv contenant 'budget' dans mes Documents"
 - **OCR** : "Lis le texte de cette capture d'ecran"
 - **Excel** : "Cree un fichier Excel avec ces donnees clients"
-- **Lanceur** : "Ouvre VS Code et le site de Jira"
+- **Pipeline** : "Telecharge les donnees, traite-les en Python, genere un rapport PowerPoint"
 
 ## Installation
 
@@ -96,6 +119,15 @@ pip install -e ".[ocr]"
 
 # Excel (.xlsx)
 pip install -e ".[excel]"
+
+# Web (requests + beautifulsoup4 pour meilleure extraction)
+pip install -e ".[web]"
+
+# Documents (Word, PowerPoint, PDF)
+pip install -e ".[documents]"
+
+# Tout le pack Cowork (web + documents)
+pip install -e ".[cowork]"
 
 # Tout installer
 pip install -e ".[all]"
@@ -152,11 +184,10 @@ pytest tests/
 ### Dans Claude Desktop
 - "Ping mon MCP"
 - "Capture mon ecran"
-- "Liste mes fichiers dans ~/Documents"
-- "Quel processus utilise le plus de RAM ?"
-- "Envoie-moi une notification"
-- "Trouve les fichiers Excel dans mon bureau"
-- "Cree un CSV avec ces donnees"
+- "Execute `git status` dans mon projet"
+- "Definis un workspace dans ~/travail et liste les fichiers"
+- "Telecharge le contenu de cette page web"
+- "Cree un rapport Word avec ces donnees"
 
 ## Structure du projet
 
@@ -165,7 +196,7 @@ mcp-custom/
 ├── src/
 │   └── mon_mcp/
 │       ├── __init__.py
-│       ├── server.py              # Orchestrateur MCP (37 outils)
+│       ├── server.py              # Orchestrateur MCP (58 outils)
 │       ├── platform_api.py        # Routeur plateforme (auto-detect OS)
 │       ├── _platform_windows.py   # Backend Windows (ctypes, pygetwindow)
 │       ├── _platform_linux.py     # Backend Linux (pynput, pyperclip)
@@ -184,14 +215,24 @@ mcp-custom/
 │           ├── lanceur.py         # Lanceur d'apps / URLs
 │           ├── recherche.py       # Recherche de fichiers
 │           ├── ocr.py             # OCR (pytesseract)
-│           └── excel.py           # Excel/CSV
+│           ├── excel.py           # Excel/CSV
+│           ├── execution.py       # Execution code/commandes
+│           ├── workspace.py       # Gestion workspace
+│           ├── web.py             # Operations web
+│           ├── documents.py       # Generation documents
+│           └── context.py         # Contexte de session
 ├── tests/
 │   ├── test_server.py
 │   ├── test_fichiers.py
 │   ├── test_systeme.py
 │   ├── test_lanceur.py
 │   ├── test_recherche.py
-│   └── test_excel.py
+│   ├── test_excel.py
+│   ├── test_execution.py
+│   ├── test_workspace.py
+│   ├── test_web.py
+│   ├── test_documents.py
+│   └── test_context.py
 ├── pyproject.toml
 ├── README.md
 ├── LICENSE
@@ -237,8 +278,10 @@ Ce MCP donne a Claude la capacite de :
 - Lister et terminer des processus (processus critiques proteges)
 - Lire et ecrire dans le presse-papier
 - Lancer des applications et ouvrir des URLs
+- Executer des commandes et du code (commandes dangereuses bloquees, timeout)
+- Telecharger du contenu web (limite 100 MB, validation URL)
 
-Les chemins systeme et processus critiques sont proteges automatiquement selon la plateforme (Windows et Linux).
+Les chemins systeme, processus critiques et commandes dangereuses sont proteges automatiquement selon la plateforme. Les variables d'environnement sensibles sont masquees.
 
 **Utilisez-le uniquement si vous faites confiance aux actions demandees.**
 

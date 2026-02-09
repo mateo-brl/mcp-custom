@@ -1,5 +1,5 @@
 """
-Serveur MCP Custom - Agent d'assistance visuelle.
+Serveur MCP Custom - Agent autonome Cowork-like.
 
 Ce serveur permet de :
 - Verifier que le MCP fonctionne (ping)
@@ -14,8 +14,13 @@ Ce serveur permet de :
 - Rechercher des fichiers par nom et contenu
 - Extraire du texte par OCR
 - Manipuler des fichiers Excel et CSV
+- Executer du code et des commandes (Python, shell, scripts)
+- Gerer un workspace de travail (dossier dedie)
+- Stocker du contexte entre les appels (variables de session)
+- Telecharger et extraire du contenu web
+- Generer des documents (Word, PowerPoint, PDF)
 
-Compatible Windows et Linux.
+Compatible Windows et Linux. 58 outils.
 """
 
 import importlib.util
@@ -33,6 +38,7 @@ mcp = FastMCP("mon-mcp-custom")
 from mon_mcp.tools import capture, clavier, souris, fenetres  # noqa: E402
 from mon_mcp.tools import fichiers, systeme, notification, clipboard  # noqa: E402
 from mon_mcp.tools import lanceur, recherche, ocr, excel  # noqa: E402
+from mon_mcp.tools import execution, workspace, web, documents, context  # noqa: E402
 
 capture.register_tools(mcp)
 clavier.register_tools(mcp)
@@ -46,6 +52,11 @@ lanceur.register_tools(mcp)
 recherche.register_tools(mcp)
 ocr.register_tools(mcp)
 excel.register_tools(mcp)
+execution.register_tools(mcp)
+workspace.register_tools(mcp)
+web.register_tools(mcp)
+documents.register_tools(mcp)
+context.register_tools(mcp)
 
 
 # =============================================================================
@@ -83,7 +94,17 @@ def ping() -> str:
                 missing.append(name)
 
     # Dependances optionnelles
-    for module, name in [("pytesseract", "pytesseract"), ("openpyxl", "openpyxl")]:
+    optional_deps = [
+        ("pytesseract", "pytesseract"),
+        ("openpyxl", "openpyxl"),
+        ("requests", "requests"),
+        ("bs4", "beautifulsoup4"),
+        ("docx", "python-docx"),
+        ("pptx", "python-pptx"),
+        ("reportlab", "reportlab"),
+        ("markdown", "markdown"),
+    ]
+    for module, name in optional_deps:
         if importlib.util.find_spec(module) is None:
             missing.append(f"{name} (optionnel)")
 

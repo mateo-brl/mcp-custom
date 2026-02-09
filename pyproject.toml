@@ -4,15 +4,15 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mon-mcp-custom"
-version = "0.5.0"
-description = "Serveur MCP custom complet: capture d'ecran, controle ordinateur, gestion fichiers, systeme, notifications, OCR, Excel (Windows + Linux)"
+version = "0.6.0"
+description = "Serveur MCP custom Cowork-like: capture, controle, fichiers, execution code, workspace, web, documents, Excel, OCR (Windows + Linux)"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [
     { name = "Mateo Baril", email = "mateo@github.com" }
 ]
-keywords = ["mcp", "ai", "claude", "llm", "tools", "automation", "screen-capture", "file-management", "system-monitor", "ocr", "excel"]
+keywords = ["mcp", "ai", "claude", "llm", "tools", "automation", "screen-capture", "file-management", "system-monitor", "ocr", "excel", "code-execution", "workspace", "web-scraping", "document-generation", "cowork"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -45,8 +45,21 @@ ocr = [
 excel = [
     "openpyxl>=3.1.0",
 ]
+web = [
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
+]
+documents = [
+    "python-docx>=1.0.0",
+    "python-pptx>=0.6.0",
+    "reportlab>=4.0.0",
+    "markdown>=3.5.0",
+]
+cowork = [
+    "mon-mcp-custom[web,documents]",
+]
 all = [
-    "mon-mcp-custom[ocr,excel]",
+    "mon-mcp-custom[ocr,excel,web,documents]",
 ]
 dev = [
     "pytest>=7.0.0",
